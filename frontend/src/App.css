@@ -1,0 +1,57 @@
+main {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.wardrobe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.garment-card {
+  padding: 20px;
+  background: white;
+  border-radius: 16px;
+}
+
+.garment-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: contain;
+}
+
+.garment-card h2 {
+  margin: 16px 0 8px;
+  font-size: 20px;
+}
+
+.garment-card p {
+  margin: 0;
+  color: #675b75;
+}
+
+.category-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.category-filters button {
+  padding: 10px 16px;
+  border: 1px solid #d4c5e8;
+  border-radius: 8px;
+  background: white;
+  color: #30243d;
+  font: inherit;
+  cursor: pointer;
+}
+
+.category-filters button[aria-pressed="true"] {
+  background: #684395;
+  border-color: #684395;
+  color: white;
+}
