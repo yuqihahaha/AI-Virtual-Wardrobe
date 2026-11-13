@@ -9,3 +9,5 @@ export type CategoryFilter = "all" | Garment["category"];
 
 export type NewGarment = Omit<Garment, "id">;
 
+export type GarmentEdits = Pick<Garment, "name" | "category">;
+

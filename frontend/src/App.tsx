@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import { set } from "idb-keyval"
+import { useEffect, useState } from 'react'
 import './App.css'
 
-import type { Garment, CategoryFilter, NewGarment } from "./types/garment";
+import type { Garment, CategoryFilter, NewGarment, GarmentEdits } from "./types/garment";
+import { loadGarments, saveGarments } from "./storage/wardrobeStorage";
 import GarmentCard from "./components/GarmentCard";
 import GarmentForm from './components/GarmentForm';
+import CategoryFilters from './components/CategoryFilter';
 
 const initialGarments: Garment[] = [
   {
@@ -37,8 +38,44 @@ function App() {
 
   const [saveMessage, setSaveMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  useEffect(() => {
+    let cancelled = false;
 
-  const filteredGarments = garments.filter(garment => selectedCategory === "all" || garment.category === selectedCategory);
+    async function restoreWardrobe() {
+      try {
+        const savedGarments = await loadGarments();
+
+        if (!cancelled && savedGarments !== undefined) {
+          setGarments(savedGarments);
+        }
+      } catch {
+        if (!cancelled) {
+          setLoadError("Failed to load wardrobe.");
+        }
+      } finally {
+          if (!cancelled) {
+            setIsLoading(false);
+          }
+        }
+      }
+
+    restoreWardrobe();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const query = searchQuery.trim().toLowerCase();
+  const filteredGarments = garments.filter(garment => {
+    const matchesCategory = selectedCategory === "all" || garment.category === selectedCategory;
+    const matchesSearch = garment.name.toLowerCase().includes(query);
+    return matchesCategory && matchesSearch;
+  });
 
   function addGarment(newGarment: NewGarment) {
     setGarments((currentGarments) => [
@@ -50,6 +87,7 @@ function App() {
     ]);
 
     setSelectedCategory("all"); // Reset the category filter to "all" after adding a new garment
+    setSearchQuery(""); // Clear the search query after adding a new garment
     setSaveMessage(""); // Clear any previous save message when a new garment is added
   }
 
@@ -58,7 +96,7 @@ function App() {
     setSaveMessage("");
 
     try {
-      await set("wardrobe", garments);
+      await saveGarments(garments);
       setSaveMessage("Wardrobe saved successfully!");
     } catch (error) {
       console.error("Error saving wardrobe:", error);
@@ -66,6 +104,28 @@ function App() {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  function removeGarment(id: number) {
+    setGarments((currentGarments) => currentGarments.filter((garment) => garment.id !== id));
+    setSaveMessage("Garment removed. Save your wardrobe to persist changes.");
+  }
+
+  function updateGarment(id: number, edits: GarmentEdits) {
+    setGarments((currentGarments) =>
+      currentGarments.map((garment) =>
+        garment.id === id ? { ...garment, ...edits } : garment
+      )
+    );
+    setSaveMessage("Garment updated. Save your wardrobe to persist changes.");
+  }
+
+  if (isLoading) {
+    return <p role="status">Loading wardrobe...</p>;
+  }
+
+  if (loadError) {
+    return <p role="alert">{loadError}</p>;
   }
 
   return (
@@ -81,16 +141,30 @@ function App() {
 
       <GarmentForm onAddGarment={addGarment} />
 
-      <div className="category-filters">
-        <button type = "button" onClick={() => setSelectedCategory("all")} aria-pressed={selectedCategory === "all"}>All</button>
-        <button type = "button" onClick={() => setSelectedCategory("top")} aria-pressed={selectedCategory === "top"}>Tops</button>
-        <button type = "button" onClick={() => setSelectedCategory("bottom")} aria-pressed={selectedCategory === "bottom"}>Bottoms</button>
-        <button type = "button" onClick={() => setSelectedCategory("shoes")} aria-pressed={selectedCategory === "shoes"}>Shoes</button>
-      </div>
+      <label htmlFor="wardrobe-search">Search your wardrobes</label>
+      <input
+        id="wardrobe-search"
+        type="search"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        placeholder="Search by name"
+      />
+
+      <CategoryFilters
+        selectedCategory={selectedCategory}
+        onCategoryChange={setSelectedCategory}
+      />
+
+      {filteredGarments.length === 0 && (
+        <p>
+          {garments.length === 0 ? "Your wardrobe is empty. Add your first garment!" 
+          : "No garments match your search and category."}
+        </p>
+      )}
 
       <div className="wardrobe-grid">
       {filteredGarments.map((item) => (
-        <GarmentCard key={item.id} garment={item} />
+        <GarmentCard key={item.id} garment={item} onRemove={removeGarment} onUpdate={updateGarment} />
       ))}  
     </div>
     </main>
