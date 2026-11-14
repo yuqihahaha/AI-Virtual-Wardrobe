@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react';
+import BackendStatus from './components/BackendStatus';
+import BackendGarments from './components/BackendGarments';
 import './App.css'
 
 import type { Garment, CategoryFilter, NewGarment, GarmentEdits } from "./types/garment";
@@ -130,6 +132,7 @@ function App() {
 
   return (
     <main>
+      <BackendStatus />
       <h1>My Wardrobe</h1>
       <p>{filteredGarments.length} of {garments.length} items</p>
 
@@ -167,6 +170,7 @@ function App() {
         <GarmentCard key={item.id} garment={item} onRemove={removeGarment} onUpdate={updateGarment} />
       ))}  
     </div>
+    <BackendGarments />
     </main>
   )
 }

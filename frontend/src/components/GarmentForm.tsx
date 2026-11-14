@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
 import type { Garment, NewGarment } from "../types/garment";
+import { useId } from "react";
 
 type GarmentFormProps = {
-  onAddGarment: (garment: NewGarment) => void;
+  onAddGarment: (garment: NewGarment) => void | Promise<void>;
 };
 
 export default function GarmentForm({
@@ -13,6 +14,10 @@ export default function GarmentForm({
     const [newCategory, setNewCategory] = useState<Garment["category"]>("top");
     const [newImageUrl, setNewImageUrl] = useState("");
     const [imageError, setImageError] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState("");
+
+    const formId = useId();
 
     function handleImageChange(event: React.ChangeEvent<HTMLInputElement>) {
       const file = event.target.files?.[0];
@@ -46,25 +51,34 @@ export default function GarmentForm({
       reader.readAsDataURL(file);
     }
 
-    function handleSubmit() {
+    async function handleSubmit() {
         const name = newName.trim();
-        if (!name) return;
+        if (!name || isSubmitting) return;
 
         if (photoInputRef.current?.files?.length && !newImageUrl) return; // If a file is selected but newImageUrl is empty, do not add the garment
 
-        onAddGarment({
-            name,
-            category: newCategory,
-            imageUrl: newImageUrl,
-        });
-        
-        setNewName("");
-        setNewCategory("top");
-        setNewImageUrl("");
-        setImageError("");
+        setIsSubmitting(true);
+        setSubmitError("");
 
-        if (photoInputRef.current) {
-            photoInputRef.current.value = ""; // Reset the file input
+        try {
+            await onAddGarment({
+                name,
+                category: newCategory,
+                imageUrl: newImageUrl,
+            });
+
+            setNewName("");
+            setNewCategory("top");
+            setNewImageUrl("");
+            setImageError("");
+
+            if (photoInputRef.current) {
+                photoInputRef.current.value = ""; // Reset the file input
+            }
+        } catch {
+            setSubmitError("Failed to add garment. Please try again.");
+        } finally {
+            setIsSubmitting(false);
         }
     }
 
@@ -75,19 +89,20 @@ export default function GarmentForm({
         handleSubmit();
       }}
     >
-      <label htmlFor="garment-name">Garment name</label>
+        <fieldset disabled={isSubmitting}>
+      <label htmlFor={`${formId}-name`}>Garment name</label>
       <input
         type="text"
-        id="garment-name"
+        id={`${formId}-name`}
         value={newName}
         onChange={(event) => setNewName(event.target.value)}
         placeholder="e.g. Blue sweater"
         required
       />
 
-      <label htmlFor="garment-category">Category</label>
+      <label htmlFor={`${formId}-category`}>Category</label>
       <select
-        id="garment-category"
+        id={`${formId}-category`}
         value={newCategory}
         onChange={(event) => {
           const value = event.target.value;
@@ -102,10 +117,10 @@ export default function GarmentForm({
         <option value="shoes">Shoes</option>
       </select>
 
-      <label htmlFor="garment-photo">Clothing photo</label>
+      <label htmlFor={`${formId}-photo`}>Clothing photo</label>
       <input
         ref={photoInputRef}
-        id="garment-photo"
+        id={`${formId}-photo`}
         type="file"
         accept="image/jpeg, image/png, image/webp"
         onChange={handleImageChange}
@@ -121,8 +136,12 @@ export default function GarmentForm({
         />
       )}
 
-      <button type="submit">Add Garment</button>
+      <button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Adding..." : "Add Garment"}
+      </button>
       <p>You're adding: {newName}</p>
+    </fieldset>
+    {submitError && <p role="alert">{submitError}</p>}
     </form>
   );
 }
