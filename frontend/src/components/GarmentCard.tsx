@@ -49,7 +49,7 @@ export default function GarmentCard({ garment, onRemove, onUpdate }: GarmentCard
                     value={draftName}
                     onChange={(e) => setDraftName(e.target.value)}
                 />
-                <label htmlFor={`garment=category-${garment.id}`}>Category:</label>
+                <label htmlFor={`garment-category-${garment.id}`}>Category:</label>
                 <select 
                 id = {`garment-category-${garment.id}`}
                 value={draftCategory}
